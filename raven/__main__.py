@@ -19,16 +19,16 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
         self.organize_uploads = kwargs.pop('organize_uploads', False)
         super().__init__(*args, **kwargs)
 
-    # Definer our handler method for restricting access by client ip
+    # Define our handler method for restricting access by client ip
     def restrict_access(self):
         if not self.allowed_ip:
-            # No IP restriction, allow access
+            # Access is permitted by default
             return True  
         
-        # Obtain client ip
+        # Obtain the client ip
         client_ip = ip_address(self.client_address[0])
 
-        # Parse through each entry in allowed_ips
+        # Cycle through each entry in allowed_ips for permitted access
         allowed_ips = self.allowed_ip.split(',')
         for ip in allowed_ips:
             ip = ip.strip()     
@@ -43,7 +43,8 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
             elif client_ip == ip_address(ip):
                 return True
             
-        # If none of the addresses check out, send a 403
+        # The client ip is not permitted access to the handler
+        # Respond back to the client with a 403 status code
         self.send_response(403)
         self.end_headers()
         return False
@@ -51,14 +52,16 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
     # Define our GET handler method
     def do_GET(self):
         if self.path == '/':
-            # Check access restrictions
+            # Check if we are restricting access
             if not self.restrict_access():  
                 return
 
-            # Send HTTP response status code 200 back to the client
+            # Respond back to the client with a 200 status code
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
+
+            # Send an HTML response to the client with the upload form
             self.wfile.write(b"""
             <!DOCTYPE html>
             <html>
@@ -77,7 +80,7 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
     # Define our POST handler method
     def do_POST(self):
         if self.path == '/':
-            # Check access restrictions
+            # Check if we are restricting access
             if not self.restrict_access():  
                 return
 
@@ -97,34 +100,36 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
 
                     for part in parts:
                         if b'filename="' in part:
-                            # Extract filename from Content-Disposition header
+                            # Extract the filename from Content-Disposition header
                             headers, data = part.split(b'\r\n\r\n', 1)
                             content_disposition = headers.decode()
                             filename = re.search(r'filename="(.+)"', content_disposition).group(1)
 
-                            # Sanitize the filename
+                            # Sanitize the filename based on our requirements
                             filename = sanitize_filename(filename)
 
-                            # Organize uploads into subfolders by remote client IP
+                            # Organize uploads into subfolders by client IP otherwise use the default
                             if self.organize_uploads and self.client_address:
                                 client_ip = self.client_address[0]
                                 upload_folder = os.path.join(self.upload_folder, client_ip)
                                 os.makedirs(upload_folder, exist_ok=True)
                                 file_path = os.path.join(upload_folder, filename)
                             else:
-                                upload_folder = self.upload_folder  # Use the original upload folder
+                                upload_folder = self.upload_folder  
                                 file_path = os.path.join(upload_folder, filename)
 
                             # Generate a unique filename in case the file already exists
                             file_path = prevent_clobber(upload_folder, filename)
 
-                            # Save the uploaded file in binary mode
+                            # Save the uploaded file in binary mode so we don't corrupt any content
                             with open(file_path, 'wb') as f:
                                 f.write(data)
 
-                            # Send HTTP response status code 200 back to the client
+                            # Respond back to the client with a 200 status code
                             self.send_response(200)
                             self.end_headers()
+
+                            # Send an HTML response to the client for redirection
                             self.wfile.write(b"""
                             <!DOCTYPE html>
                             <html>
@@ -137,24 +142,25 @@ class FileUploadHandler(http.server.SimpleHTTPRequestHandler):
                             </html>
                             """)
 
-                            # Print the path where the uploaded file was saved
+                            # Print the path where the uploaded file was saved to the terminal
                             now = datetime.now().strftime("%d/%b/%Y %H:%M:%S")
                             print(f"{self.client_address[0]} - - [{now}] \"File saved {file_path}\"")
                             return
                 except Exception as e:
                     print(f"Error processing the uploaded file: {str(e)}")
 
-            # Send HTTP response status code 400 back to the client
+            # Something bad happened if we get to this point
+            # Error details are provided by http.server on the terminal
+            # Respond back to the client with a 400 status code
             self.send_response(400)
             self.end_headers()
-            self.wfile.write(b'No file uploaded.')
 
 
 # Normalizes the filename, then remove any characters that are not letters, numbers, underscores, dots, or hyphens
 def sanitize_filename(filename):
-    pass1 = os.path.normpath(filename)
-    final = re.sub(r'[^\w.-]', '_', pass1)
-    return final
+    normalized = os.path.normpath(filename)
+    sanitized = re.sub(r'[^\w.-]', '_', normalized)
+    return sanitized
 
 
 # Appends a file name with an incrementing number if it happens to exist already
@@ -193,7 +199,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    # Initializing variables
+    # Initializing configuration variables
     host = args.host
     port = args.port
     allowed_ip = args.allowed_ip
@@ -206,13 +212,13 @@ def main():
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
 
-        # Create our HTTP request handler with the new parameter
+        # Create an HTTP server instance with our custom request handling
         server = socketserver.TCPServer((host, port), lambda *args, **kwargs: FileUploadHandler(*args, **kwargs, upload_folder=upload_folder, allowed_ip=allowed_ip, organize_uploads=organize_uploads))
 
-        # Output HTTP request handler details
+        # Print our handler details to the terminal
         print(f"[*] Serving HTTP on {host} port {port} (http://{host}:{port}/)")
 
-        # Output additional details
+        # Print additional details to the terminal
         if allowed_ip:
             print(f"[*] Listener access is restricted to {allowed_ip}")
         else:
@@ -223,7 +229,7 @@ def main():
         else:
             print(f"[*] Uploads will be saved in {upload_folder}")
 
-        # Start our HTTP request handler
+        # Start the HTTP server and keep it running until we stop it
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received, exiting.")
