@@ -72,8 +72,75 @@ Start the HTTP server on all on a specific interface (192.168.0.12), listening o
 
 `raven 192.168.0.12 443 --allowed-ip 192.168.0.4 --upload-folder /tmp --organize-uploads`
 
+## Scripted Uploads
+
+Uploading files using PowerShell:
+
+```powershell
+# Listener
+$Uri = "http://192.168.0.12:443/"
+
+# Target File
+$File = Get-Item "C:\Path\To\File"
+$Content = [System.IO.File]::ReadAllBytes($File.FullName)
+$Boundary = [System.Guid]::NewGuid().ToString()
+
+# Request Headers
+$Headers = @{
+    "Content-Type" = "multipart/form-data; boundary=$Boundary"
+}
+
+# Request Body
+$Body = @"
+--$Boundary
+Content-Disposition: form-data; name="file"; filename="$($File.Name)"
+Content-Type: application/octet-stream
+
+$Content
+
+--$Boundary--
+"@
+
+# Upload File
+Invoke-WebRequest -UseBasicParsing -Uri $Uri -Method "POST" -Headers $Headers -Body $Body
+```
+
+Uploading files using Python3:
+
+```python
+#!/usr/bin/env python3
+
+import requests
+import uuid
+
+# Listener
+url = "http://192.168.0.12:443/"
+
+# Target File
+file_path = "/path/to/file"
+file_name = file_path.split("/")[-1]
+with open(file_path, "rb") as file:
+    file_content = file.read()
+boundary = str(uuid.uuid4())
+
+# Request Headers
+headers = {
+    "Content-Type": f"multipart/form-data; boundary={boundary}"
+}
+
+# Request Body
+body = (
+    f"--{boundary}\r\n"
+    f'Content-Disposition: form-data; name="file"; filename="{file_name}"\r\n'
+    "Content-Type: application/octet-stream\r\n\r\n"
+    f"{file_content.decode('ISO-8859-1')}\r\n"
+    f"--{boundary}--\r\n"
+)
+
+# Upload File
+requests.post(url, headers=headers, data=body)
+```
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-
