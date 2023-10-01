@@ -16,12 +16,31 @@ While the majority of the hard work is already being handled by the http.server 
 
 - **Detailed Logging**: Raven provides detailed logging of file uploads and interaction with the http server, including the status codes sent back to a client, its IP address, timestamp, and the saved file's location in the event a file is uploaded.
 
+## Installation
+
+**Kali Linux (APT Package)**
+
+If you are using Kali Linux, you can easily install Raven using APT.
+
+```bash
+sudo apt update
+sudo apt install raven
+```
+
+**Manual Installation (Git Clone)**
+
+Alternatively, if you prefer to manually install Raven or if you are using an operating system other than Kali Linux, you can use Git to clone the Raven repository from GitHub.
+
+```bash
+git clone https://github.com/gh0x0st/raven.git
+```
+
 ## Usage
 
 Raven is straightforward to use and includes simple command-line arguments to manage the included feature sets:
 
 ```bash
-python3 raven.py <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <folder>] [--organize-uploads]
+raven <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <folder>] [--organize-uploads]
 ```
 
 * <listening_ip>: The IP address for our http handler to listen on
@@ -29,30 +48,6 @@ python3 raven.py <listening_ip> <listening_port> [--allowed-ip <allowed_client_i
 * --allowed-ip <allowed_client_ip>:Restrict access to our http handler by IP address (optional)
 * --upload-folder <folder>: "Designate the directory to save uploaded files to (default: current working directory)
 * --organize-uploads: Organize file uploads into subfolders by remote client IP
-
-## Installation
-
-Install from GitHub
-
-1. Clone the Repository
-
-   ```bash
-   git clone https://github.com/gh0x0st/raven.git
-   cd raven
-   ```
-   
-2. Install using pip3
-
-   ```bash
-   pip3 install .
-   ```
-
-3. Add /home/USER/./local/bin to your PATH environment variable
-
-   ```bash
-   echo 'export PATH="/home/kali/.local/bin:$PATH"' >> ~/.zshrc
-   source ~/.zshrc
-   ```
 
 ## Examples
 
