@@ -167,7 +167,7 @@ def sanitize_filename(filename):
 def prevent_clobber(upload_folder, filename):
     file_path = os.path.join(upload_folder, filename)
     counter = 1
-
+    # Keep iterating until a unique filename is found
     while os.path.exists(file_path):
         base_name, file_extension = os.path.splitext(filename)
         new_filename = f"{base_name}_{counter}{file_extension}"
@@ -177,11 +177,29 @@ def prevent_clobber(upload_folder, filename):
     return file_path
 
 
+# Generates the epilog content for argparse, providing usage examples
+def generate_epilog():
+    examples = [
+        "examples:",
+        "  Start the HTTP server on all available network interfaces, listening on port 443",
+        "  raven 0.0.0.0 443\n",
+        "  Start the HTTP server on a specific interface (192.168.0.12), listening on port 443, and restrict access to 192.168.0.4",
+        "  raven 192.168.0.12 443 --allowed-ip 192.168.0.4\n",
+        "  Start the HTTP server on a specific interface (192.168.0.12), listening on port 443, restrict access to 192.168.0.4, and save uploaded files to /tmp:",
+        "  raven 192.168.0.12 443 --allowed-ip 192.168.0.4 --upload-folder /tmp\n",
+        "  Start the HTTP server on a specific interface (192.168.0.12), listening on port 443, restrict access to 192.168.0.4, and save uploaded files to /tmp organized by remote client IP",
+        "  raven 192.168.0.12 443 --allowed-ip 192.168.0.4 --upload-folder /tmp --organize-uploads",
+    ]
+    return "\n".join(examples)
+
+
 def main():
     # Build the parser
     parser = argparse.ArgumentParser(
         description="A lightweight file upload service used for penetration testing and incident response.",
-        usage="python3 raven.py <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <upload_directory>] [--organize-uploads]"
+        usage="python3 raven.py <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <upload_directory>] [--organize-uploads]",
+        epilog=generate_epilog(),
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     # Configure our arguments
