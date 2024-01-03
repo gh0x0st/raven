@@ -197,7 +197,7 @@ def main():
     # Build the parser
     parser = argparse.ArgumentParser(
         description="A lightweight file upload service used for penetration testing and incident response.",
-        usage="python3 raven.py <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <upload_directory>] [--organize-uploads]",
+        usage="raven <listening_ip> <listening_port> [--allowed-ip <allowed_client_ip>] [--upload-folder <upload_directory>] [--organize-uploads]",
         epilog=generate_epilog(),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
